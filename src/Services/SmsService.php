@@ -13,6 +13,7 @@ class SmsService
      */
     public const PROVIDER_TWILIO  = 'twilio';
     public const PROVIDER_CALLPRO = 'callpro';
+    public const PROVIDER_TIARA   = 'tiara';
 
     /**
      * Default SMS provider.
@@ -71,6 +72,7 @@ class SmsService
         try {
             $result = match ($selectedProvider) {
                 self::PROVIDER_CALLPRO => $this->sendViaCallPro($normalizedPhone, $text, $options),
+                self::PROVIDER_TIARA   => $this->sendViaTiara($normalizedPhone, $text, $options),
                 self::PROVIDER_TWILIO  => $this->sendViaTwilio($normalizedPhone, $text, $options),
                 default                => throw new \InvalidArgumentException("Unsupported SMS provider: {$selectedProvider}"),
             };
@@ -129,6 +131,32 @@ class SmsService
         }
 
         return $callProService->send($toNumber, $text, $from);
+    }
+
+    /**
+     * Send SMS via Tiara.
+     *
+     * @param string $to      Recipient phone number
+     * @param string $text    Message text
+     * @param array  $options Additional options
+     *
+     * @return array Response from Tiara service
+     *
+     * @throws \Exception If Tiara is not configured or sending fails
+     */
+    protected function sendViaTiara(string $to, string $text, array $options = []): array
+    {
+        $tiaraService = new TiaraSmsService();
+
+        if (!$tiaraService->isConfigured()) {
+            Log::warning('Tiara not configured, falling back to Twilio');
+
+            return $this->sendViaTwilio($to, $text, $options);
+        }
+
+        $senderId = data_get($options, 'from');
+
+        return $tiaraService->send($to, $text, $senderId);
     }
 
     /**
@@ -247,6 +275,12 @@ class SmsService
         $providers[self::PROVIDER_CALLPRO] = [
             'name'      => 'CallPro/MessagePro.mn',
             'available' => $callProService->isConfigured(),
+        ];
+
+        $tiaraService                    = new TiaraSmsService();
+        $providers[self::PROVIDER_TIARA] = [
+            'name'      => 'Tiara Connect',
+            'available' => $tiaraService->isConfigured(),
         ];
 
         return $providers;

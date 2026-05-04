@@ -10,7 +10,6 @@ use Fleetbase\Traits\Expirable;
 use Fleetbase\Traits\HasMetaAttributes;
 use Fleetbase\Traits\HasSubject;
 use Fleetbase\Traits\HasUuid;
-use Fleetbase\Twilio\Support\Laravel\Facade as Twilio;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 
@@ -195,9 +194,7 @@ class VerificationCode extends Model
                 $senderId = $company->getOption('alpha_numeric_sender_id');
 
                 if ($enabled && !empty($senderId)) {
-                    // Alphanumeric sender IDs are Twilio-specific
-                    // Do NOT set in $smsOptions['from'] as it would be passed to all providers
-                    $smsOptions['twilioParams']['from'] = $senderId;
+                    $smsOptions['from'] = $senderId;
                 }
             }
         }
