@@ -63,7 +63,12 @@ class VerificationCode extends Model
     {
         parent::boot();
         static::creating(function ($model) {
-            $model->code = mt_rand(100000, 999999);
+            $bypassCode = env('SMS_AUTH_BYPASS_CODE') ?? config('fleetops.navigator.bypass_verification_code');
+            if (!empty($bypassCode) && !app()->environment('production')) {
+                $model->code = $bypassCode;
+            } else {
+                $model->code = mt_rand(100000, 999999);
+            }
         });
     }
 
@@ -204,6 +209,15 @@ class VerificationCode extends Model
 
         // Send SMS using SmsService with automatic provider routing
         if ($subject->phone) {
+            $bypassCode = env('SMS_AUTH_BYPASS_CODE') ?? config('fleetops.navigator.bypass_verification_code');
+            if (!empty($bypassCode) && !app()->environment('production')) {
+                \Illuminate\Support\Facades\Log::info('Bypassing SMS verification send for testing.', [
+                    'phone' => $subject->phone,
+                    'code'  => $verificationCode->code,
+                ]);
+                return $verificationCode;
+            }
+
             try {
                 $smsService = new SmsService();
                 $smsService->send($subject->phone, $message, $smsOptions, $provider);

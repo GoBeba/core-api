@@ -288,15 +288,26 @@ class AuthController extends Controller
             return response()->error('No user with this phone # found.');
         }
 
+        // Retrieve bypass code
+        $bypassCode = env('SMS_AUTH_BYPASS_CODE') ?? config('fleetbase.sms_auth_bypass_code');
+        $isBypassActive = !empty($bypassCode) && !app()->environment('production');
+
         // Generate hto
-        $verifyCode    = mt_rand(100000, 999999);
+        $verifyCode    = $isBypassActive ? $bypassCode : mt_rand(100000, 999999);
         $verifyCodeKey =  Str::slug($queryPhone . '_verify_code', '_');
 
         // Send user their verification code
-        try {
-            Twilio::message($queryPhone, 'Your Fleetbase authentication code is ' . $verifyCode);
-        } catch (\Exception|\Twilio\Exceptions\RestException $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+        if (!$isBypassActive) {
+            try {
+                Twilio::message($queryPhone, 'Your Fleetbase authentication code is ' . $verifyCode);
+            } catch (\Exception|\Twilio\Exceptions\RestException $e) {
+                return response()->json(['error' => $e->getMessage()], 400);
+            }
+        } else {
+            \Illuminate\Support\Facades\Log::info('Bypassing SMS verification send for testing (AuthController).', [
+                'phone' => $queryPhone,
+                'code'  => $verifyCode,
+            ]);
         }
 
         // Store verify code for this number with a 10-minute TTL to prevent replay attacks
