@@ -16,7 +16,7 @@ return [
     ],
     'console' => [
         'path' => env('CONSOLE_PATH', '/fleetbase/console'),
-        'host' => env('CONSOLE_HOST', 'fleetbase.io'),
+        'host' => env('CONSOLE_HOST', isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost:8000'),
         'subdomain' => env('CONSOLE_SUBDOMAIN'),
         'secure' => env('CONSOLE_SECURE', !app()->environment(['development', 'local']))
     ],

@@ -250,7 +250,7 @@ class SocketClusterService
             $options = parse_url($options);
         }
 
-        return array_merge($defaultConnectionOptions, $options);
+        return array_merge(['timeout' => 1], $defaultConnectionOptions, $options);
     }
 
     /**
